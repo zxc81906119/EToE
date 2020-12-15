@@ -1,0 +1,8 @@
+-- 自己寫
+-- 範例
+-- 到google首頁
+goPage -p https://www.google.com
+-- 等待google首頁靜態元素載入
+wait page -p https://www.google.com -r
+-- 其他自己看code來加
+-- 如果有大神幫忙優化會更好
