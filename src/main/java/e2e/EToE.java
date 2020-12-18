@@ -68,81 +68,80 @@ public class EToE {
         },
         CLICK("click") {
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
-            	String bOption = cmdOptions.get("b");
-        		if (bOption == null || bOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋根據");
-        		}
-        		String sOption = cmdOptions.get("s");
-        		if (sOption == null || sOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋名稱");
-        		}
-        		List<WebElement> webElements = findElementsOnPage(webDriver, cmdOptions);
-        		for (WebElement webElement : webElements) {
-        			webElement.click();
-        		}
+                String bOption = cmdOptions.get("b");
+                if (bOption == null || bOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋根據");
+                }
+                String sOption = cmdOptions.get("s");
+                if (sOption == null || sOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋名稱");
+                }
+                List<WebElement> webElements = findElementsOnPage(webDriver, cmdOptions);
+                for (WebElement webElement : webElements) {
+                    webElement.click();
+                }
             }
         },
         WAIT_PAGE("wait page") {
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
-            	if (cmdOptions.containsKey("p")) {
-					if (cmdOptions.containsKey("r")) {
-						waitTargetPageReady(webDriver, cmdOptions.get("p"));
-					} else if (cmdOptions.containsKey("l")) {
-						waitLeaveThisPage(webDriver, cmdOptions.get("p"));
-					} else {
-						waitUtilGoTargetPage(webDriver, cmdOptions.get("p"));
-					}
-				} else {
-					throw new RuntimeException("wait page 指令需帶有 -p 參數");
-				}
+                if (cmdOptions.containsKey("p")) {
+                    if (cmdOptions.containsKey("r")) {
+                        waitTargetPageReady(webDriver, cmdOptions.get("p"));
+                    } else if (cmdOptions.containsKey("l")) {
+                        waitLeaveThisPage(webDriver, cmdOptions.get("p"));
+                    } else {
+                        waitUtilGoTargetPage(webDriver, cmdOptions.get("p"));
+                    }
+                } else {
+                    throw new RuntimeException("wait page 指令需帶有 -p 參數");
+                }
             }
         },
-        
+
         // 根據html或jsp內容去找而非畫面上
         WAIT_ELEMENT("wait element") {
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
-            	String bOption = cmdOptions.get("b");
-        		if (bOption == null || bOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋根據");
-        		}
-        		String sOption = cmdOptions.get("s");
-        		if (sOption == null || sOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋名稱");
-        		}
-        		String cOption = cmdOptions.get("c");
-        		if (cOption == null || cOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位等待條件");
-        		}
-        		By byCondition = getByCondition(cmdOptions);
-				switch (cmdOptions.get("c")) {
-				case "clickable":
-					new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.elementToBeClickable(byCondition));
-					break;
-				case "visible":
-					new WebDriverWait(webDriver, 30, 500)
-							.until(ExpectedConditions.visibilityOfElementLocated(byCondition));
-					break;
-				default:
-					break;
-				}
+                String bOption = cmdOptions.get("b");
+                if (bOption == null || bOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋根據");
+                }
+                String sOption = cmdOptions.get("s");
+                if (sOption == null || sOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋名稱");
+                }
+                String cOption = cmdOptions.get("c");
+                if (cOption == null || cOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位等待條件");
+                }
+                By byCondition = getByCondition(cmdOptions);
+                switch (cmdOptions.get("c")) {
+                case "clickable":
+                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.elementToBeClickable(byCondition));
+                    break;
+                case "visible":
+                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.visibilityOfElementLocated(byCondition));
+                    break;
+                default:
+                    break;
+                }
             }
         },
         SET_FIELD("set field") {
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
-            	String bOption = cmdOptions.get("b");
-        		if (bOption == null || bOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋根據");
-        		}
-        		String sOption = cmdOptions.get("s");
-        		if (sOption == null || sOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位搜尋名稱");
-        		}
-        		String vOption = cmdOptions.get("v");
-        		if (vOption == null || vOption.isEmpty()) {
-        			throw new RuntimeException("沒有提供欄位值");
-        		}
-        		List<WebElement> webElements = findElementsOnPage(webDriver, cmdOptions);
-        		setValue(webDriver, webElements, vOption);
+                String bOption = cmdOptions.get("b");
+                if (bOption == null || bOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋根據");
+                }
+                String sOption = cmdOptions.get("s");
+                if (sOption == null || sOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位搜尋名稱");
+                }
+                String vOption = cmdOptions.get("v");
+                if (vOption == null || vOption.isEmpty()) {
+                    throw new RuntimeException("沒有提供欄位值");
+                }
+                List<WebElement> webElements = findElementsOnPage(webDriver, cmdOptions);
+                setValue(webDriver, webElements, vOption);
             }
         };
 
@@ -155,74 +154,49 @@ public class EToE {
         public String getCmdString() {
             return cmdString;
         }
-        
+
         // 必須是畫面上可被找到的
         private static List<WebElement> findElementsOnPage(WebDriver webDriver, Map<String, String> cmdOptions) {
-    		List<WebElement> webElements = null;
-    		By by = getByCondition(cmdOptions);
-    		switch (cmdOptions.get("b")) {
-    		case "className":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "cssSelector":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "id":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "linkText":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "name":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "partialLinkText":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "tagName":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		case "xpath":
-    			webElements = webDriver.findElements(by);
-    			break;
-    		default:
-    			break;
-    		}
-    		return webElements;
-    	}
-        
-		private static By getByCondition(Map<String, String> cmdOptions) {
-        	By by = null;
-        	String search = cmdOptions.get("s");
-    		switch (cmdOptions.get("b")) {
-    		case "className":
-    			by = By.className(search);
-    			break;
-    		case "cssSelector":
-    			by = By.cssSelector(search);
-    			break;
-    		case "id":
-    			by = By.id(search);
-    			break;
-    		case "linkText":
-    			by = By.linkText(search);
-    			break;
-    		case "name":
-    			by = By.name(search);
-    			break;
-    		case "partialLinkText":
-    			by = By.partialLinkText(search);
-    			break;
-    		case "tagName":
-    			by = By.tagName(search);
-    			break;
-    		case "xpath":
-    			by = By.xpath(search);
-    			break;
-    		default:
-    			break;
-    		}
-        	return by;
+            List<WebElement> webElements = null;
+            By by = getByCondition(cmdOptions);
+            if (by != null) {
+                webElements = webDriver.findElements(by);
+            }
+            return webElements;
+        }
+
+        private static By getByCondition(Map<String, String> cmdOptions) {
+            By by = null;
+            String search = cmdOptions.get("s");
+            switch (cmdOptions.get("b")) {
+            case "className":
+                by = By.className(search);
+                break;
+            case "cssSelector":
+                by = By.cssSelector(search);
+                break;
+            case "id":
+                by = By.id(search);
+                break;
+            case "linkText":
+                by = By.linkText(search);
+                break;
+            case "name":
+                by = By.name(search);
+                break;
+            case "partialLinkText":
+                by = By.partialLinkText(search);
+                break;
+            case "tagName":
+                by = By.tagName(search);
+                break;
+            case "xpath":
+                by = By.xpath(search);
+                break;
+            default:
+                break;
+            }
+            return by;
         }
     }
 
@@ -258,34 +232,35 @@ public class EToE {
     }
 
     public static void setValue(WebDriver webDriver, List<WebElement> webElements, Object value) {
-    	if (webElements != null && !webElements.isEmpty()) {
-			for (WebElement webElement : webElements) {
-				String tagName = webElement.getTagName();
-				String stringValue = String.class.cast(value);
-				switch (tagName) {
-				case "select":
-					// 針對value等候option到來
-					waitElementExist(webDriver, webElement, stringValue);
-					Select select = new Select(webElement);
-					select.selectByValue(stringValue);
-					break;
-				case "input":
-					String inputType = webElement.getAttribute("type");
-					if ("text".equalsIgnoreCase(inputType)) {
-						webElement.sendKeys(stringValue);
-					} else if ("radio".equalsIgnoreCase(inputType)) {
-						if ((webElement.getAttribute("value")).equalsIgnoreCase(stringValue)) {
-							webElement.click();
-						}
-					} else if ("checkbox".equalsIgnoreCase(inputType)) {
-						webElement.click();
-					}
-					break;
-				default:
-					break;
-				}
-			}
-		}
+        if (webElements != null && !webElements.isEmpty()) {
+            for (WebElement webElement : webElements) {
+                String tagName = webElement.getTagName();
+                String stringValue = String.class.cast(value);
+                switch (tagName) {
+                case "select":
+                    // 針對value等候option到來
+                    waitElementExist(webDriver, webElement, stringValue);
+                    Select select = new Select(webElement);
+                    select.selectByValue(stringValue);
+                    break;
+                case "input":
+                    String inputType = webElement.getAttribute("type");
+                    if ("text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
+                        webElement.clear();
+                        webElement.sendKeys(stringValue);
+                    } else if ("radio".equalsIgnoreCase(inputType)) {
+                        if ((webElement.getAttribute("value")).equalsIgnoreCase(stringValue)) {
+                            webElement.click();
+                        }
+                    } else if ("checkbox".equalsIgnoreCase(inputType)) {
+                        webElement.click();
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
