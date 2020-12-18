@@ -20,6 +20,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,7 +242,8 @@ public class EToE {
                 case "select":
                     // wait option exist
                     waitElementExist(webDriver, webElement, value);
-                    setValueByJs(webDriver, webElement, value);
+                    Select select = new Select(webElement);
+                    select.selectByValue(String.valueOf(value));
                     break;
                 case "input":
                     String inputType = webElement.getAttribute("type");
@@ -262,9 +264,14 @@ public class EToE {
         }
     }
 
+    public static void triggerEvent(WebDriver webDriver, WebElement webElement, String eventName) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("var event=new Event('" + eventName + "'); element.dispatchEvent(event);", webElement);
+    }
+
     public static void clickByJs(WebDriver webDriver, WebElement webElement) {
         JavascriptExecutor js = (JavascriptExecutor) webDriver;
-        js.executeScript("var element=arguments[0]; element.checked=true", webElement);
+        js.executeScript("var element=arguments[0]; element.checked=true;", webElement);
     }
 
     public static void setValueByJs(WebDriver webDriver, WebElement webElement, Object value) {
