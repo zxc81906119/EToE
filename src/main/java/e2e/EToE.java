@@ -20,7 +20,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,6 +122,9 @@ public class EToE {
                 case "visible":
                     new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.visibilityOfElementLocated(byCondition));
                     break;
+                case "exist":
+                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.presenceOfElementLocated(byCondition));
+                    break;
                 default:
                     break;
                 }
@@ -139,9 +141,6 @@ public class EToE {
                     throw new RuntimeException("沒有提供欄位搜尋名稱");
                 }
                 String vOption = cmdOptions.get("v");
-                if (vOption == null) {
-                    throw new RuntimeException("沒有提供欄位值");
-                }
                 List<WebElement> webElements = findElementsOnPage(webDriver, bOption, sOption);
                 setValue(webDriver, webElements, vOption);
             }
@@ -238,25 +237,22 @@ public class EToE {
         if (webElements != null && !webElements.isEmpty()) {
             for (WebElement webElement : webElements) {
                 String tagName = webElement.getTagName();
-                String stringValue = String.class.cast(value);
                 switch (tagName) {
                 case "select":
-                    // 針對value等候option到來
-                    waitElementExist(webDriver, webElement, stringValue);
-                    Select select = new Select(webElement);
-                    select.selectByValue(stringValue);
+                    // wait option exist
+                    waitElementExist(webDriver, webElement, value);
+                    setValueByJs(webDriver, webElement, value);
                     break;
                 case "input":
                     String inputType = webElement.getAttribute("type");
                     if ("text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
-                        webElement.clear();
-                        webElement.sendKeys(stringValue);
+                        setValueByJs(webDriver, webElement, value);
                     } else if ("radio".equalsIgnoreCase(inputType)) {
-                        if ((webElement.getAttribute("value")).equalsIgnoreCase(stringValue)) {
-                            webElement.click();
+                        if (value.equals(webElement.getAttribute("value"))) {
+                            clickByJs(webDriver, webElement);
                         }
                     } else if ("checkbox".equalsIgnoreCase(inputType)) {
-                        webElement.click();
+                        clickByJs(webDriver, webElement);
                     }
                     break;
                 default:
@@ -266,7 +262,17 @@ public class EToE {
         }
     }
 
-    public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
+    public static void clickByJs(WebDriver webDriver, WebElement webElement) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("var element=arguments[0]; element.checked=true", webElement);
+    }
+
+    public static void setValueByJs(WebDriver webDriver, WebElement webElement, Object value) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("var element=arguments[0]; element.value=arguments[1];", webElement, value);
+    }
+
+    public static void waitElementExist(WebDriver webDriver, WebElement webElement, Object value) {
         new WebDriverWait(webDriver, 30, 500).until((input) -> {
             List<WebElement> webElements = webElement.findElements(By.cssSelector("option[value=\"" + value + "\"]"));
             return webElements != null && !webElements.isEmpty();
