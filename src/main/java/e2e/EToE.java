@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import org.apache.commons.io.FileUtils;
+import org.jsoup.nodes.Element;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -145,6 +146,25 @@ public class EToE {
                 List<WebElement> webElements = findElementsOnPage(webDriver, bOption, sOption);
                 setValue(webDriver, webElements, vOption);
             }
+        },
+        SLEEP("sleep") {
+
+            @Override
+            public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
+                String timeMillis = cmdOptions.get("t");
+                long sleepTime;
+                if (timeMillis == null || timeMillis.isEmpty()) {
+                    sleepTime = 1000;
+                } else {
+                    sleepTime = Long.parseLong(timeMillis);
+                }
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    LOGGER.error("sleep 發生錯誤", e);
+                }
+            }
+
         };
 
         private String cmdString;
@@ -271,7 +291,7 @@ public class EToE {
 
     public static void clickByJs(WebDriver webDriver, WebElement webElement) {
         JavascriptExecutor js = (JavascriptExecutor) webDriver;
-        js.executeScript("var element=arguments[0]; element.checked=true;", webElement);
+        js.executeScript("var element=arguments[0]; element.click();", webElement);
     }
 
     public static void setValueByJs(WebDriver webDriver, WebElement webElement, Object value) {
