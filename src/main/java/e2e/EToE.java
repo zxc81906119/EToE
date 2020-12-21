@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Stack;
 
 import org.apache.commons.io.FileUtils;
-import org.jsoup.nodes.Element;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -258,19 +257,21 @@ public class EToE {
         if (webElements != null && !webElements.isEmpty()) {
             for (WebElement webElement : webElements) {
                 String tagName = webElement.getTagName();
+                String stringValue = String.valueOf(value);
                 switch (tagName) {
                 case "select":
                     // wait option exist
-                    waitElementExist(webDriver, webElement, value);
+                    waitElementExist(webDriver, webElement, stringValue);
                     Select select = new Select(webElement);
                     select.selectByValue(String.valueOf(value));
                     break;
                 case "input":
                     String inputType = webElement.getAttribute("type");
-                    if ("text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
-                        setValueByJs(webDriver, webElement, value);
+                    if ("tel".equalsIgnoreCase(inputType) || "text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
+                        webElement.clear();
+                        webElement.sendKeys(stringValue);
                     } else if ("radio".equalsIgnoreCase(inputType)) {
-                        if (value.equals(webElement.getAttribute("value"))) {
+                        if (stringValue.equals(webElement.getAttribute("value"))) {
                             clickByJs(webDriver, webElement);
                         }
                     } else if ("checkbox".equalsIgnoreCase(inputType)) {
@@ -299,7 +300,7 @@ public class EToE {
         js.executeScript("var element=arguments[0]; element.value=arguments[1];", webElement, value);
     }
 
-    public static void waitElementExist(WebDriver webDriver, WebElement webElement, Object value) {
+    public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
         new WebDriverWait(webDriver, 30, 500).until((input) -> {
             List<WebElement> webElements = webElement.findElements(By.cssSelector("option[value=\"" + value + "\"]"));
             return webElements != null && !webElements.isEmpty();
