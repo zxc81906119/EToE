@@ -267,7 +267,14 @@ public class EToE {
                     break;
                 case "input":
                     String inputType = webElement.getAttribute("type");
-                    if ("tel".equalsIgnoreCase(inputType) || "text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
+                    if ("file".equalsIgnoreCase(inputType)) {
+                        if (isElementShow(webDriver, webElement)) {
+                            webElement.sendKeys(stringValue);
+                        } else {
+                            showElement(webDriver, webElement);
+                            webElement.sendKeys(stringValue);
+                        }
+                    } else if ("tel".equalsIgnoreCase(inputType) || "text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
                         webElement.clear();
                         webElement.sendKeys(stringValue);
                     } else if ("radio".equalsIgnoreCase(inputType)) {
@@ -298,6 +305,22 @@ public class EToE {
     public static void setValueByJs(WebDriver webDriver, WebElement webElement, Object value) {
         JavascriptExecutor js = (JavascriptExecutor) webDriver;
         js.executeScript("var element=arguments[0]; element.value=arguments[1];", webElement, value);
+    }
+
+    public static void showElement(WebDriver webDriver, WebElement webElement) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("var element=arguments[0]; element.style.display='block';", webElement);
+    }
+
+    public static void hideElement(WebDriver webDriver, WebElement webElement) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("var element=arguments[0]; element.style.display='none';", webElement);
+    }
+
+    public static boolean isElementShow(WebDriver webDriver, WebElement webElement) {
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        String display = (String) js.executeScript("var element=arguments[0]; return element.style.display;", webElement);
+        return !"none".equals(display);
     }
 
     public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
