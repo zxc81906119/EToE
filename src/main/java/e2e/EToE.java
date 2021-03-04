@@ -1,7 +1,7 @@
 package e2e;
 
 import java.io.File;
-
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +11,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Stack;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
@@ -48,8 +51,9 @@ public class EToE {
 
     /**
      * 如果跑到-
-     * 
-     * 就先將OPTION放到堆疊堆到看到空白就停止放堆疊 讀到正常的字 如果堆疊沒有東西就是ERROR 如果有東西就一直吃到一個容器中 直到看到下一個-如果到最後沒有下一個-,就將兩個堆疊中的東西拿出來搞
+     * <p>
+     * 就先將OPTION放到堆疊堆到看到空白就停止放堆疊 讀到正常的字 如果堆疊沒有東西就是ERROR 如果有東西就一直吃到一個容器中
+     * 直到看到下一個-如果到最後沒有下一個-,就將兩個堆疊中的東西拿出來搞
      */
     public enum Command implements CommandInterface {
         GO_PAGE("goPage") {
@@ -117,17 +121,19 @@ public class EToE {
                 }
                 By byCondition = getByCondition(bOption, sOption);
                 switch (cOption) {
-                case "clickable":
-                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.elementToBeClickable(byCondition));
-                    break;
-                case "visible":
-                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.visibilityOfElementLocated(byCondition));
-                    break;
-                case "exist":
-                    new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.presenceOfElementLocated(byCondition));
-                    break;
-                default:
-                    break;
+                    case "clickable":
+                        new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.elementToBeClickable(byCondition));
+                        break;
+                    case "visible":
+                        new WebDriverWait(webDriver, 30, 500)
+                                .until(ExpectedConditions.visibilityOfElementLocated(byCondition));
+                        break;
+                    case "exist":
+                        new WebDriverWait(webDriver, 30, 500)
+                                .until(ExpectedConditions.presenceOfElementLocated(byCondition));
+                        break;
+                    default:
+                        break;
                 }
             }
         },
@@ -147,7 +153,6 @@ public class EToE {
             }
         },
         SLEEP("sleep") {
-
             @Override
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
                 String timeMillis = cmdOptions.get("t");
@@ -190,32 +195,32 @@ public class EToE {
             By by = null;
             if (byType != null && search != null) {
                 switch (byType) {
-                case "className":
-                    by = By.className(search);
-                    break;
-                case "cssSelector":
-                    by = By.cssSelector(search);
-                    break;
-                case "id":
-                    by = By.id(search);
-                    break;
-                case "linkText":
-                    by = By.linkText(search);
-                    break;
-                case "name":
-                    by = By.name(search);
-                    break;
-                case "partialLinkText":
-                    by = By.partialLinkText(search);
-                    break;
-                case "tagName":
-                    by = By.tagName(search);
-                    break;
-                case "xpath":
-                    by = By.xpath(search);
-                    break;
-                default:
-                    break;
+                    case "className":
+                        by = By.className(search);
+                        break;
+                    case "cssSelector":
+                        by = By.cssSelector(search);
+                        break;
+                    case "id":
+                        by = By.id(search);
+                        break;
+                    case "linkText":
+                        by = By.linkText(search);
+                        break;
+                    case "name":
+                        by = By.name(search);
+                        break;
+                    case "partialLinkText":
+                        by = By.partialLinkText(search);
+                        break;
+                    case "tagName":
+                        by = By.tagName(search);
+                        break;
+                    case "xpath":
+                        by = By.xpath(search);
+                        break;
+                    default:
+                        break;
                 }
             }
             return by;
@@ -226,7 +231,8 @@ public class EToE {
         Command cmd = null;
         for (Command importantCmd : Command.values()) {
             String importantCmdPrefix = importantCmd.getCmdString();
-            if (inputCommand.startsWith(importantCmdPrefix) && (cmd == null || importantCmdPrefix.length() > cmd.getCmdString().length())) {
+            if (inputCommand.startsWith(importantCmdPrefix)
+                    && (cmd == null || importantCmdPrefix.length() > cmd.getCmdString().length())) {
                 cmd = importantCmd;
             }
         }
@@ -248,9 +254,40 @@ public class EToE {
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-        WebDriver webDriver = new ChromeDriver();
-        File file = new File(EToE.class.getResource("/e2e/runFile.txt").toURI());
-        runFile(webDriver, file);
+        final File eToEResourceRootDir = new File(EToE.class.getResource("/e2e").toURI());
+        final File runPropertiesFile = new File(eToEResourceRootDir, "conf/run.properties");
+        if (runPropertiesFile.isFile()) {
+            Properties properties = new Properties();
+            properties.load(new FileInputStream(runPropertiesFile));
+            String runFileNames = properties.getProperty("run.file.names");
+            if (runFileNames == null || runFileNames.isEmpty()) {
+                runFileNames = "runFile.txt";
+            } else {
+                runFileNames = runFileNames.trim();
+            }
+            String[] runFileNamesSplit = runFileNames.split(",");
+            final ExecutorService executorService = Executors.newFixedThreadPool(4);
+            for (String runFileName : runFileNamesSplit) {
+                final File runFile = new File(eToEResourceRootDir, "run/" + runFileName);
+                if (runFile.isFile()) {
+                    executorService.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            WebDriver webDriver = new ChromeDriver();
+                            try {
+                                runFile(webDriver, runFile);
+                            } catch (IOException e) {
+                                LOGGER.debug("runFile:{} e2e 發生錯誤！", runFile);
+                            }
+                        }
+                    });
+                }
+            }
+            executorService.shutdown();
+        } else {
+            LOGGER.debug("file:{} doesn't exist", runPropertiesFile);
+        }
+
     }
 
     public static void setValue(WebDriver webDriver, List<WebElement> webElements, Object value) {
@@ -259,34 +296,35 @@ public class EToE {
                 String tagName = webElement.getTagName();
                 String stringValue = String.valueOf(value);
                 switch (tagName) {
-                case "select":
-                    // wait option exist
-                    waitElementExist(webDriver, webElement, stringValue);
-                    Select select = new Select(webElement);
-                    select.selectByValue(String.valueOf(value));
-                    break;
-                case "input":
-                    String inputType = webElement.getAttribute("type");
-                    if ("file".equalsIgnoreCase(inputType)) {
-                        if (isElementShow(webDriver, webElement)) {
+                    case "select":
+                        // wait option exist
+                        waitElementExist(webDriver, webElement, stringValue);
+                        Select select = new Select(webElement);
+                        select.selectByValue(String.valueOf(value));
+                        break;
+                    case "input":
+                        String inputType = webElement.getAttribute("type");
+                        if ("file".equalsIgnoreCase(inputType)) {
+                            if (isElementShow(webDriver, webElement)) {
+                                webElement.sendKeys(stringValue);
+                            } else {
+                                showElement(webDriver, webElement);
+                                webElement.sendKeys(stringValue);
+                            }
+                        } else if ("tel".equalsIgnoreCase(inputType) || "text".equalsIgnoreCase(inputType)
+                                || "password".equalsIgnoreCase(inputType)) {
+                            webElement.clear();
                             webElement.sendKeys(stringValue);
-                        } else {
-                            showElement(webDriver, webElement);
-                            webElement.sendKeys(stringValue);
-                        }
-                    } else if ("tel".equalsIgnoreCase(inputType) || "text".equalsIgnoreCase(inputType) || "password".equalsIgnoreCase(inputType)) {
-                        webElement.clear();
-                        webElement.sendKeys(stringValue);
-                    } else if ("radio".equalsIgnoreCase(inputType)) {
-                        if (stringValue.equals(webElement.getAttribute("value"))) {
+                        } else if ("radio".equalsIgnoreCase(inputType)) {
+                            if (stringValue.equals(webElement.getAttribute("value"))) {
+                                clickByJs(webDriver, webElement);
+                            }
+                        } else if ("checkbox".equalsIgnoreCase(inputType)) {
                             clickByJs(webDriver, webElement);
                         }
-                    } else if ("checkbox".equalsIgnoreCase(inputType)) {
-                        clickByJs(webDriver, webElement);
-                    }
-                    break;
-                default:
-                    break;
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -319,7 +357,8 @@ public class EToE {
 
     public static boolean isElementShow(WebDriver webDriver, WebElement webElement) {
         JavascriptExecutor js = (JavascriptExecutor) webDriver;
-        String display = (String) js.executeScript("var element=arguments[0]; return element.style.display;", webElement);
+        String display = (String) js.executeScript("var element=arguments[0]; return element.style.display;",
+                webElement);
         return !"none".equals(display);
     }
 
@@ -343,7 +382,8 @@ public class EToE {
     }
 
     public static void waitPageLoading(WebDriver driver) {
-        new WebDriverWait(driver, 30, 500).until((input) -> ((JavascriptExecutor) input).executeScript("return document.readyState").toString().equals("complete"));
+        new WebDriverWait(driver, 30, 500).until((input) -> ((JavascriptExecutor) input)
+                .executeScript("return document.readyState").toString().equals("complete"));
     }
 
     public static void waitTargetPageReady(WebDriver webDriver, String targetPageUrl) {
@@ -363,90 +403,91 @@ public class EToE {
         for (int i = 0; i < commandCharArray.length; i++) {
             char thisChar = commandCharArray[i];
             switch (thisChar) {
-            case WHITE_SPACE_CHAR:
-                if (hasGoDash) {// 已經走過-
-                    if (stack.isEmpty()) {// 左邊的堆疊是空的
-                        throw new RuntimeException("不支援- ");
-                    } else if (!isAfterOption) {// 左邊
-                        isAfterOption = true;// 開啟變成右邊
-                    } else if (!deque.isEmpty() || doQuotesChar != null) {// 引號模式或右邊雙向佇列不為空
-                        deque.offer(thisChar);
-                    }
-                }
-                break;
-            case DASH_CHAR:
-                if (!hasGoDash) {// 還沒走過-
-                    hasGoDash = true;
-                } else if (!isAfterOption) {// 左邊
-                    throw new RuntimeException("不支援--,-X-");
-                } else if (doQuotesChar != null) {// 右邊雙向佇列是"或'開頭
-                    deque.offer(thisChar);
-                } else if (!deque.isEmpty() && deque.peekLast() != WHITE_SPACE_CHAR) {// 右邊雙向佇列不是空且最後一個不是空白字元
-                    throw new RuntimeException("不支援-X YYY-");
-                } else {
-                    do {
-                        char last = stack.pop();
-                        if (!deque.isEmpty()) {
-                            StringBuilder stringBuilder = getDequeToStringBuilder(deque);
-                            String optionContent = stringBuilder.toString().trim();
-                            outCome.put(String.valueOf(last), optionContent);
-                        } else {
-                            outCome.put(String.valueOf(last), EMPTY_STRING);
+                case WHITE_SPACE_CHAR:
+                    if (hasGoDash) {// 已經走過-
+                        if (stack.isEmpty()) {// 左邊的堆疊是空的
+                            throw new RuntimeException("不支援- ");
+                        } else if (!isAfterOption) {// 左邊
+                            isAfterOption = true;// 開啟變成右邊
+                        } else if (!deque.isEmpty() || doQuotesChar != null) {// 引號模式或右邊雙向佇列不為空
+                            deque.offer(thisChar);
                         }
-                    } while (!stack.isEmpty());
-                    isAfterOption = false;// 設定為左邊
-                }
-                break;
-            case DOUBLE_QUOTES:
-            case APOSTROPHE:
-                if (hasGoDash) {// 已走過-
-                    if (!isAfterOption) {// 左邊
-                        throw new RuntimeException("不支援-',-\",-X',-X\"");
-                    } else if (deque.isEmpty() && doQuotesChar == null) {// 右邊佇列是空的
-                        doQuotesChar = thisChar;// 開啟引號模式
-                    } else if (doQuotesChar != null && doQuotesChar == thisChar && isOpenEvenJump(deque.descendingIterator())) {// 結束引號模式
+                    }
+                    break;
+                case DASH_CHAR:
+                    if (!hasGoDash) {// 還沒走過-
+                        hasGoDash = true;
+                    } else if (!isAfterOption) {// 左邊
+                        throw new RuntimeException("不支援--,-X-");
+                    } else if (doQuotesChar != null) {// 右邊雙向佇列是"或'開頭
+                        deque.offer(thisChar);
+                    } else if (!deque.isEmpty() && deque.peekLast() != WHITE_SPACE_CHAR) {// 右邊雙向佇列不是空且最後一個不是空白字元
+                        throw new RuntimeException("不支援-X YYY-");
+                    } else {
                         do {
                             char last = stack.pop();
                             if (!deque.isEmpty()) {
                                 StringBuilder stringBuilder = getDequeToStringBuilder(deque);
-                                String optionContent = stringBuilder.toString();
+                                String optionContent = stringBuilder.toString().trim();
                                 outCome.put(String.valueOf(last), optionContent);
                             } else {
                                 outCome.put(String.valueOf(last), EMPTY_STRING);
                             }
                         } while (!stack.isEmpty());
-                        hasGoDash = false;// 設定未走過-
                         isAfterOption = false;// 設定為左邊
-                        doQuotesChar = null;// 關閉引號模式
-                    } else {
-                        deque.offer(thisChar);
                     }
-                } else {
-                    throw new RuntimeException("不支援 指令和-中間有'or\"");
-                }
-                break;
-            case ESCAPE_CHARACTER:
-                if (hasGoDash) {// 已走過-
-                    if (!isAfterOption) {// 左邊
-                        throw new RuntimeException("沒有支援-safsa\\");
+                    break;
+                case DOUBLE_QUOTES:
+                case APOSTROPHE:
+                    if (hasGoDash) {// 已走過-
+                        if (!isAfterOption) {// 左邊
+                            throw new RuntimeException("不支援-',-\",-X',-X\"");
+                        } else if (deque.isEmpty() && doQuotesChar == null) {// 右邊佇列是空的
+                            doQuotesChar = thisChar;// 開啟引號模式
+                        } else if (doQuotesChar != null && doQuotesChar == thisChar
+                                && isOpenEvenJump(deque.descendingIterator())) {// 結束引號模式
+                            do {
+                                char last = stack.pop();
+                                if (!deque.isEmpty()) {
+                                    StringBuilder stringBuilder = getDequeToStringBuilder(deque);
+                                    String optionContent = stringBuilder.toString();
+                                    outCome.put(String.valueOf(last), optionContent);
+                                } else {
+                                    outCome.put(String.valueOf(last), EMPTY_STRING);
+                                }
+                            } while (!stack.isEmpty());
+                            hasGoDash = false;// 設定未走過-
+                            isAfterOption = false;// 設定為左邊
+                            doQuotesChar = null;// 關閉引號模式
+                        } else {
+                            deque.offer(thisChar);
+                        }
                     } else {
-                        deque.offer(thisChar);
+                        throw new RuntimeException("不支援 指令和-中間有'or\"");
                     }
-                } else {
-                    throw new RuntimeException("指令有問題");
-                }
-                break;
-            default:
-                if (hasGoDash) {// 已走過-
-                    if (!isAfterOption) {// 左邊
-                        stack.push(thisChar);
+                    break;
+                case ESCAPE_CHARACTER:
+                    if (hasGoDash) {// 已走過-
+                        if (!isAfterOption) {// 左邊
+                            throw new RuntimeException("沒有支援-safsa\\");
+                        } else {
+                            deque.offer(thisChar);
+                        }
                     } else {
-                        deque.offer(thisChar);
+                        throw new RuntimeException("指令有問題");
                     }
-                } else {
-                    throw new RuntimeException("指令有問題");
-                }
-                break;
+                    break;
+                default:
+                    if (hasGoDash) {// 已走過-
+                        if (!isAfterOption) {// 左邊
+                            stack.push(thisChar);
+                        } else {
+                            deque.offer(thisChar);
+                        }
+                    } else {
+                        throw new RuntimeException("指令有問題");
+                    }
+                    break;
             }
         }
         while (!stack.isEmpty()) {
@@ -519,29 +560,29 @@ public class EToE {
                 }
             } else {
                 switch (element) {
-                case 't':
-                    stringBuilder.append('\t');
-                    break;
-                case 'n':
-                    stringBuilder.append('\n');
-                    break;
-                case 'b':
-                    stringBuilder.append('\b');
-                    break;
-                case 'f':
-                    stringBuilder.append('\f');
-                    break;
-                case 'r':
-                    stringBuilder.append('\r');
-                    break;
-                case ESCAPE_CHARACTER:
-                case DOUBLE_QUOTES:
-                case APOSTROPHE:
-                    stringBuilder.append(element);
-                    break;
-                default:
-                    stringBuilder.append(ESCAPE_CHARACTER).append(element);
-                    break;
+                    case 't':
+                        stringBuilder.append('\t');
+                        break;
+                    case 'n':
+                        stringBuilder.append('\n');
+                        break;
+                    case 'b':
+                        stringBuilder.append('\b');
+                        break;
+                    case 'f':
+                        stringBuilder.append('\f');
+                        break;
+                    case 'r':
+                        stringBuilder.append('\r');
+                        break;
+                    case ESCAPE_CHARACTER:
+                    case DOUBLE_QUOTES:
+                    case APOSTROPHE:
+                        stringBuilder.append(element);
+                        break;
+                    default:
+                        stringBuilder.append(ESCAPE_CHARACTER).append(element);
+                        break;
                 }
                 isJump = false;
             }
