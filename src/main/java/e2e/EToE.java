@@ -1,21 +1,7 @@
 package e2e;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Stack;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import io.github.bonigarcia.wdm.DriverManagerType;
+import io.github.bonigarcia.wdm.WebDriverManager;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -28,8 +14,15 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.bonigarcia.wdm.DriverManagerType;
-import io.github.bonigarcia.wdm.WebDriverManager;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class EToE {
     static {
@@ -49,12 +42,6 @@ public class EToE {
         void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions);
     }
 
-    /**
-     * 如果跑到-
-     * <p>
-     * 就先將OPTION放到堆疊堆到看到空白就停止放堆疊 讀到正常的字 如果堆疊沒有東西就是ERROR 如果有東西就一直吃到一個容器中
-     * 直到看到下一個-如果到最後沒有下一個-,就將兩個堆疊中的東西拿出來搞
-     */
     public enum Command implements CommandInterface {
         GO_PAGE("goPage") {
             public void executeCommand(WebDriver webDriver, Map<String, String> cmdOptions) {
@@ -171,7 +158,7 @@ public class EToE {
 
         };
 
-        private String cmdString;
+        private final String cmdString;
 
         Command(String cmdString) {
             this.cmdString = cmdString;
@@ -230,7 +217,7 @@ public class EToE {
     public static Command getCommand(String inputCommand) {
         Command cmd = null;
         for (Command importantCmd : Command.values()) {
-            String importantCmdPrefix = importantCmd.getCmdString();
+            final String importantCmdPrefix = importantCmd.getCmdString();
             if (inputCommand.startsWith(importantCmdPrefix)
                     && (cmd == null || importantCmdPrefix.length() > cmd.getCmdString().length())) {
                 cmd = importantCmd;
@@ -240,11 +227,11 @@ public class EToE {
     }
 
     public static void processCmd(WebDriver webDriver, String inputCommand) {
-        Command cmd = getCommand(inputCommand);
+        final Command cmd = getCommand(inputCommand);
         if (cmd != null) {
             LOGGER.debug("[processCmd] 對應到的指令:{}", cmd.getCmdString());
-            String newCommand = inputCommand.replaceFirst(cmd.getCmdString(), EMPTY_STRING);
-            Map<String, String> cmdOptions = processCmdDetail(newCommand);
+            final String newCommand = inputCommand.replaceFirst(cmd.getCmdString(), EMPTY_STRING);
+            final Map<String, String> cmdOptions = processCmdDetail(newCommand);
             LOGGER.debug("[processCmd] optionKey和optionValue的對應:{}", cmdOptions);
             cmd.executeCommand(webDriver, cmdOptions);
             LOGGER.debug("[processCmd] 處理完畢");
@@ -254,40 +241,47 @@ public class EToE {
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-        final File eToEResourceRootDir = new File(EToE.class.getResource("/e2e").toURI());
+        final File eToEResourceRootDir = new File(Objects.requireNonNull(EToE.class.getResource("/e2e")).toURI());
         final File runPropertiesFile = new File(eToEResourceRootDir, "conf/run.properties");
         if (runPropertiesFile.isFile()) {
-            Properties properties = new Properties();
-            properties.load(new FileInputStream(runPropertiesFile));
-            String runFileNames = properties.getProperty("run.file.names");
-            if (runFileNames == null || runFileNames.isEmpty()) {
-                runFileNames = "runFile.txt";
-            } else {
-                runFileNames = runFileNames.trim();
-            }
-            String[] runFileNamesSplit = runFileNames.split(",");
+            final Properties properties = new Properties();
+            properties.load(Files.newInputStream(runPropertiesFile.toPath()));
+            final String runFileNames = getRunFileNames(properties);
+            final String[] runFileNamesSplit = runFileNames.split(",");
             final ExecutorService executorService = Executors.newFixedThreadPool(4);
-            for (String runFileName : runFileNamesSplit) {
-                final File runFile = new File(eToEResourceRootDir, "run/" + runFileName);
-                if (runFile.isFile()) {
-                    executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            WebDriver webDriver = new ChromeDriver();
+            try {
+                for (String runFileName : runFileNamesSplit) {
+                    final File runFile = new File(eToEResourceRootDir, "run/" + runFileName);
+                    if (runFile.isFile()) {
+                        CompletableFuture.runAsync(() -> {
+                            final WebDriver webDriver = new ChromeDriver();
                             try {
                                 runFile(webDriver, runFile);
                             } catch (IOException e) {
                                 LOGGER.debug("runFile:{} e2e 發生錯誤！", runFile);
                             }
-                        }
-                    });
+                        }, executorService);
+                    }
                 }
+            } finally {
+                executorService.shutdown();
             }
-            executorService.shutdown();
         } else {
             LOGGER.debug("file:{} doesn't exist", runPropertiesFile);
         }
 
+    }
+
+    private static String getRunFileNames(Properties properties) {
+        final String runFileNames = properties.getProperty("run.file.names");
+        if (runFileNames == null) {
+            return "runFile.txt";
+        }
+        final String runFileNamesTrim = runFileNames.trim();
+        if (runFileNamesTrim.isEmpty()) {
+            return "runFile.txt";
+        }
+        return runFileNamesTrim;
     }
 
     public static void setValue(WebDriver webDriver, List<WebElement> webElements, Object value) {
@@ -400,8 +394,7 @@ public class EToE {
         Map<String, String> outCome = new HashMap<>();
         char[] commandCharArray = command.toCharArray();
 
-        for (int i = 0; i < commandCharArray.length; i++) {
-            char thisChar = commandCharArray[i];
+        for (char thisChar : commandCharArray) {
             switch (thisChar) {
                 case WHITE_SPACE_CHAR:
                     if (hasGoDash) {// 已經走過-
@@ -594,14 +587,14 @@ public class EToE {
     }
 
     public static void runFile(WebDriver webDriver, File file) throws IOException {
-        String cmd = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+        final String cmd = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
         runString(webDriver, cmd);
     }
 
     public static void runString(WebDriver webDriver, String cmd) {
-        String[] eachCmds = cmd.split("\r?\n");
-        for (String eachCmd : eachCmds) {
-            String eachCmdTrim = eachCmd.trim();
+        final String[] eachCommands = cmd.split("\r?\n");
+        for (String eachCmd : eachCommands) {
+            final String eachCmdTrim = eachCmd.trim();
             if (!eachCmdTrim.isEmpty() && !eachCmdTrim.startsWith("--")) {
                 processCmd(webDriver, eachCmdTrim);
             }

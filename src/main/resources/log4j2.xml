@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="DEBUG">
+    <properties>
+        <property name="PROJECT_NAME">e2e</property>
+    </properties>
+    <appenders>
+        <CONSOLE name="CONSOLE" target="SYSTEM_OUT" follow="true">
+            <PatternLayout
+                    pattern="%d [${PROJECT_NAME}] [%t] | %-28c{1}  [%-5p] %m%n"/>
+        </CONSOLE>
+    </appenders>
+    <loggers>
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </loggers>
+</configuration>
