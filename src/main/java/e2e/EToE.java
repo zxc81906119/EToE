@@ -70,7 +70,7 @@ public class EToE {
                 List<WebElement> webElements = findElementsOnPage(webDriver, bOption, sOption);
                 if (webElements != null && !webElements.isEmpty()) {
                     for (WebElement webElement : webElements) {
-                        webElement.click();
+                        clickByJs(webDriver, webElement);
                     }
                 }
             }
