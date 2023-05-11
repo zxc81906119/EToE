@@ -5,5 +5,13 @@ wait element -b id -s password -c visible
 set field -b id -s password -v password
 wait element -b name -s login -c visible
 click -b name -s login
+wait element -b id -s isVerifyRacf -c visible
+click -b id -s isVerifyRacf
+wait element -b name -s login -c visible
+click -b name -s login
+wait element -b id -s racf_account -c visible
+set field -b id -s racf_account -v racf_user1
+wait element -b id -s racf_password -c visible
+set field -b id -s racf_password -v racf_pwd1
 wait element -b name -s login -c visible
 click -b name -s login
