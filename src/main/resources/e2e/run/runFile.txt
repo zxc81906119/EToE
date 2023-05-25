@@ -1,9 +1,13 @@
 goPage -p "http://localhost:8777/spring-mvc-keycloak/home"
 wait element -b id -s username -c visible
+sleep -t 5000
 set field -b id -s username -v ming
 wait element -b id -s password -c visible
+sleep -t 5000
 set field -b id -s password -v password
 wait element -b name -s login -c visible
+sleep -t 5000
 click -b name -s login
 wait element -b name -s login -c visible
+sleep -t 5000
 click -b name -s login
