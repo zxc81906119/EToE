@@ -1,7 +1,7 @@
 package e2e;
 
-import io.github.bonigarcia.wdm.DriverManagerType;
 import io.github.bonigarcia.wdm.WebDriverManager;
+import io.github.bonigarcia.wdm.config.DriverManagerType;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -23,6 +23,9 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
 
 public class EToE {
     static {
@@ -109,14 +112,14 @@ public class EToE {
                 By byCondition = getByCondition(bOption, sOption);
                 switch (cOption) {
                     case "clickable":
-                        new WebDriverWait(webDriver, 30, 500).until(ExpectedConditions.elementToBeClickable(byCondition));
+                        new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500)).until(ExpectedConditions.elementToBeClickable(byCondition));
                         break;
                     case "visible":
-                        new WebDriverWait(webDriver, 30, 500)
+                        new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500))
                                 .until(ExpectedConditions.visibilityOfElementLocated(byCondition));
                         break;
                     case "exist":
-                        new WebDriverWait(webDriver, 30, 500)
+                        new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500))
                                 .until(ExpectedConditions.presenceOfElementLocated(byCondition));
                         break;
                     default:
@@ -357,7 +360,7 @@ public class EToE {
     }
 
     public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
-        new WebDriverWait(webDriver, 30, 500).until((input) -> {
+        new WebDriverWait(webDriver, null, null).until((input) -> {
             List<WebElement> webElements = webElement.findElements(By.cssSelector("option[value=\"" + value + "\"]"));
             return webElements != null && !webElements.isEmpty();
         });
@@ -365,18 +368,18 @@ public class EToE {
 
     public static void waitLeaveThisPage(WebDriver webDriver, String thisPage) {
         if (thisPage != null) {
-            new WebDriverWait(webDriver, 30, 500).until((input) -> !thisPage.equals(input.getCurrentUrl()));
+            new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500)).until((input) -> !thisPage.equals(input.getCurrentUrl()));
         }
     }
 
     public static void waitUtilGoTargetPage(WebDriver webDriver, String targetPageUrl) {
         if (targetPageUrl != null) {
-            new WebDriverWait(webDriver, 30, 500).until((input) -> targetPageUrl.equals(input.getCurrentUrl()));
+            new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500)).until((input) -> targetPageUrl.equals(input.getCurrentUrl()));
         }
     }
 
     public static void waitPageLoading(WebDriver driver) {
-        new WebDriverWait(driver, 30, 500).until((input) -> ((JavascriptExecutor) input)
+        new WebDriverWait(driver, ofSeconds(30), ofMillis(500)).until((input) -> ((JavascriptExecutor) input)
                 .executeScript("return document.readyState").toString().equals("complete"));
     }
 
