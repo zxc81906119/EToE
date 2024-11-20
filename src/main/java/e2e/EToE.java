@@ -360,7 +360,7 @@ public class EToE {
     }
 
     public static void waitElementExist(WebDriver webDriver, WebElement webElement, String value) {
-        new WebDriverWait(webDriver, null, null).until((input) -> {
+        new WebDriverWait(webDriver, ofSeconds(30), ofMillis(500)).until((input) -> {
             List<WebElement> webElements = webElement.findElements(By.cssSelector("option[value=\"" + value + "\"]"));
             return webElements != null && !webElements.isEmpty();
         });
